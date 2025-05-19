@@ -5,6 +5,7 @@ import axios from 'axios';
 
 // Tipos
 export interface Horario {
+  dia: string;
   id: string;
   hora: string;
   disponivel: boolean;
@@ -25,6 +26,7 @@ export interface Cliente {
 }
 
 export interface Barbeiro {
+  imagemUrl: string | undefined;
   id: string;
   nome: string;
   foto: string;
@@ -76,7 +78,10 @@ const gerarHorarios = (): Horario[] => {
     if ((hora === 11 && minuto === 50) || hora === 12 || (hora === 13 && minuto < 30)) {
       disponivel = false;
     }
-    horarios.push({ id: `${hora}-${minuto}`, hora: horaFormatada, disponivel });
+    horarios.push({
+      id: `${hora}-${minuto}`, hora: horaFormatada, disponivel,
+      dia: ''
+    });
     minuto += 50;
     if (minuto >= 60) {
       hora += Math.floor(minuto / 60);
@@ -90,7 +95,10 @@ const gerarHorarios = (): Horario[] => {
   minuto = 30;
   while (hora < 19) {
     const horaFormatada = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
-    horarios.push({ id: `${hora}-${minuto}`, hora: horaFormatada, disponivel: true });
+    horarios.push({
+      id: `${hora}-${minuto}`, hora: horaFormatada, disponivel: true,
+      dia: ''
+    });
     minuto += 50;
     if (minuto >= 60) {
       hora += Math.floor(minuto / 60);
@@ -213,9 +221,16 @@ const selecionarData = (data: Date) => {
 
 const selecionarHorario = (id: string) => {
   if (!barbeiroSelecionado) return;
-  const horario = horariosDisponiveis.find(h => h.id === id && h.disponivel) || null;
+
+  // Procura o horário pelo id e que esteja disponível
+  const horario = horariosDisponiveis.find(
+    h => h.id === id && h.disponivel === true
+  ) || null;
+
+  // Atualiza o estado com o horário encontrado ou null (se não disponível)
   setHorarioSelecionado(horario);
 };
+// Função para confirmar o agendamento
 
 const confirmarAgendamento = () => {
   if (!servicoSelecionado || !horarioSelecionado || !barbeiroSelecionado || !clienteAtual.nome) return;
