@@ -27,53 +27,79 @@ export const ProvedorAgendamento: React.FC<{ children: ReactNode }> = ({ childre
   const [barbeiroSelecionadoId, setBarbeiroSelecionadoId] = useState<string>('');
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<HorarioDisponivel[]>([]);
 
+  // Busca agendamentos da API
   useEffect(() => {
     const buscarAgendamentos = async () => {
       try {
-        const resposta = await axios.get('http://localhost:3000/api/agendamentos');
+        const resposta = await axios.get<Agendamento[]>('http://localhost:3000/api/agendamentos');
         setAgendamentos(resposta.data);
       } catch (erro) {
         console.error('Erro ao buscar agendamentos:', erro);
       }
     };
-
     buscarAgendamentos();
   }, []);
 
+  // Filtra agendamentos por data, barbeiro e termo de busca
   const agendamentosFiltrados = agendamentos.filter(agendamento => {
     const dataFormatada = formatarData(new Date(agendamento.data), 'yyyy-MM-dd');
     const correspondeData = dataFormatada === dataSelecionada;
-    const correspondeBarbeiro = agendamento.barbeiro_nome === barbeiroSelecionadoId;
-    const correspondeBusca = termoBusca === '' || 
-      agendamento.cliente_nome.toLowerCase().includes(termoBusca.toLowerCase()) ||
-      agendamento.servico_nome.toLowerCase().includes(termoBusca.toLowerCase());
+    const correspondeBarbeiro = agendamento.barbeiroId === barbeiroSelecionadoId;
+    const buscaMinuscula = termoBusca.toLowerCase();
+    const correspondeBusca =
+      termoBusca === '' ||
+      agendamento.cliente_nome.toLowerCase().includes(buscaMinuscula) ||
+      agendamento.servico_nome.toLowerCase().includes(buscaMinuscula);
 
     return correspondeData && correspondeBarbeiro && correspondeBusca;
   });
 
+  // Atualiza horários disponíveis, filtrando os horários já ocupados por agendamentos confirmados
   useEffect(() => {
     if (barbeiroSelecionadoId && dataSelecionada) {
-      const horarios = gerarHorariosDisponiveis(barbeiroSelecionadoId, dataSelecionada);
-      setHorariosDisponiveis(horarios);
+      // Gera todos os horários possíveis para o barbeiro e data
+      const horariosGerados = gerarHorariosDisponiveis(barbeiroSelecionadoId, dataSelecionada);
+
+      // Filtra agendamentos confirmados daquele barbeiro e data
+      const agendamentosConfirmados = agendamentos.filter(ag =>
+        ag.barbeiroId === barbeiroSelecionadoId &&
+        formatarData(new Date(ag.data), 'yyyy-MM-dd') === dataSelecionada &&
+        ag.confirmado === 1
+      );
+
+      // Extrai as horas ocupadas (ajuste o campo de hora conforme seu modelo, ex: ag.hora)
+      const horasOcupadas = agendamentosConfirmados.map(ag => ag.horario);
+
+      // Marca indisponível os horários ocupados
+      const horariosAtualizados = horariosGerados.map(horario => ({
+        ...horario,
+        disponivel: !horasOcupadas.includes(String(horario.horario)),
+      }));
+
+      setHorariosDisponiveis(horariosAtualizados);
+    } else {
+      setHorariosDisponiveis([]);
     }
   }, [barbeiroSelecionadoId, dataSelecionada, agendamentos]);
 
+  // Confirma agendamento (atualiza campo confirmado para 1)
   const confirmarAgendamento = async (id: number) => {
     try {
       await axios.patch(`http://localhost:3000/api/agendamentos/${id}`, { confirmado: 1 });
       setAgendamentos(prev =>
-        prev.map(ag => ag.id === id ? { ...ag, confirmado: 1 } : ag)
+        prev.map(ag => Number(ag.id) === id ? { ...ag, confirmado: 1 } : ag)
       );
     } catch (erro) {
       console.error('Erro ao confirmar agendamento:', erro);
     }
   };
 
+  // Recusa agendamento (atualiza campo confirmado para 0)
   const recusarAgendamento = async (id: number) => {
     try {
       await axios.patch(`http://localhost:3000/api/agendamentos/${id}`, { confirmado: 0 });
       setAgendamentos(prev =>
-        prev.map(ag => ag.id === id ? { ...ag, confirmado: 0 } : ag)
+        prev.map(ag => Number(ag.id) === id ? { ...ag, confirmado: 0 } : ag)
       );
     } catch (erro) {
       console.error('Erro ao recusar agendamento:', erro);
@@ -93,7 +119,7 @@ export const ProvedorAgendamento: React.FC<{ children: ReactNode }> = ({ childre
         confirmarAgendamento,
         recusarAgendamento,
         setBarbeiroSelecionadoId,
-        barbeiroSelecionadoId
+        barbeiroSelecionadoId,
       }}
     >
       {children}
@@ -103,7 +129,7 @@ export const ProvedorAgendamento: React.FC<{ children: ReactNode }> = ({ childre
 
 export const useAgendamentos = () => {
   const contexto = useContext(AgendamentoContexto);
-  if (contexto === undefined) {
+  if (!contexto) {
     throw new Error('useAgendamentos deve ser usado dentro de um ProvedorAgendamento');
   }
   return contexto;
