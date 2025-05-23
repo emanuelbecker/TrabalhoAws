@@ -2,18 +2,20 @@ import pool from '../database/db.js';
 
 export const getAll = async (req, res) => {
   try {
-    const agendamentos = await pool.query(`
+    const [agendamentos] = await pool.query(`
       SELECT 
-          a.id, a.data_agendada data, a.hora_agendada, a.confirmado,
-          c.nome as cliente_nome, c.telefone, c.email,
-          s.nome as servico_nome, s.descricao, s.preco,
-          b.nome as barbeiro_nome, b.img as barbeiro_img
+          a.id, a.data_agendada AS data, a.hora_agendada, a.confirmado,
+          a.barbeiro_id AS idBarbeiro,
+          c.nome AS cliente_nome, c.telefone, c.email,
+          s.nome AS servico_nome, s.descricao, s.preco,
+          b.nome AS barbeiro_nome, b.img AS barbeiro_img
       FROM agendamentos a
           JOIN clientes c ON a.cliente_id = c.id
           JOIN servicos s ON a.servico_id = s.id
           JOIN barbeiros b ON a.barbeiro_id = b.id
       ORDER BY a.data_agendada, a.hora_agendada;
     `);
+
     res.json(agendamentos);
   } catch (err) {
     console.error(err);
@@ -24,25 +26,27 @@ export const getAll = async (req, res) => {
 export const create = async (req, res) => {
   const { cliente_id, servico_id, barbeiro_id, data, horario, confirmado = false } = req.body;
   try {
-    // Validação de campos obrigatórios
     if (!cliente_id || !servico_id || !barbeiro_id || !data || !horario) {
       return res.status(400).json({ error: 'Campos obrigatórios não fornecidos.' });
     }
-    // Verifica se já existe um agendamento confirmado para o mesmo horário
+
     const [conflito] = await pool.query(
       `SELECT id 
        FROM agendamentos 
        WHERE data_agendada = ? AND hora_agendada = ? AND barbeiro_id = ? AND confirmado = true`,
       [data, horario, barbeiro_id]
     );
-    if (conflito) {
+
+    if (conflito.length > 0) {
       return res.status(400).json({ error: 'Este horário já está confirmado por outro agendamento.' });
     }
-    const result = await pool.query(
+
+    const [result] = await pool.query(
       `INSERT INTO agendamentos (cliente_id, servico_id, barbeiro_id, data_agendada, hora_agendada, confirmado)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [cliente_id, servico_id, barbeiro_id, data, horario, confirmado]
     );
+
     res.status(201).json({ id: result.insertId, cliente_id, servico_id, barbeiro_id, data, horario, confirmado });
   } catch (err) {
     console.error(err);
@@ -58,7 +62,6 @@ export const getHorariosDisponiveis = async (req, res) => {
   }
 
   try {
-    // Função para gerar horários fixos do dia
     const gerarHorarios = () => {
       const horarios = [];
       let hora = 8;
@@ -97,22 +100,15 @@ export const getHorariosDisponiveis = async (req, res) => {
 
     const todosHorarios = gerarHorarios();
 
-    // Busca apenas agendamentos confirmados para o barbeiro na data
-    const agendados = await pool.query(
-      `SELECT hora_agendada, barbeiro_id, data_agendada 
+    const [agendados] = await pool.query(
+      `SELECT hora_agendada 
        FROM agendamentos 
        WHERE data_agendada = ? AND barbeiro_id = ? AND confirmado = true`,
       [data, barbeiroId]
     );
 
-    console.log('Parâmetros da requisição:', { data, barbeiroId });
-    console.log('Agendamentos encontrados:', agendados);
-
-    // Extrai os horários ocupados formatados "HH:mm"
     const horariosOcupados = agendados.map(a => a.hora_agendada.substring(0, 5));
-    console.log('Horários ocupados:', horariosOcupados);
 
-    // Marca indisponíveis os horários ocupados
     const horarios = todosHorarios.map(({ hora, disponivel }) => ({
       data,
       barbeiroId,
@@ -120,7 +116,6 @@ export const getHorariosDisponiveis = async (req, res) => {
       disponivel: disponivel && !horariosOcupados.includes(hora),
     }));
 
-    console.log('Horários retornados:', horarios);
     res.json(horarios);
   } catch (err) {
     console.error('Erro ao buscar horários:', err);
@@ -131,7 +126,6 @@ export const getHorariosDisponiveis = async (req, res) => {
 export const confirmarAgendamento = async (req, res) => {
   const { id } = req.params;
   try {
-    // Busca o agendamento para obter data, hora e barbeiro
     const [agendamento] = await pool.query(
       `SELECT data_agendada, hora_agendada, barbeiro_id 
        FROM agendamentos 
@@ -139,24 +133,24 @@ export const confirmarAgendamento = async (req, res) => {
       [id]
     );
 
-    if (!agendamento) {
+    if (!agendamento || agendamento.length === 0) {
       return res.status(404).json({ error: 'Agendamento não encontrado ou já confirmado.' });
     }
 
-    // Verifica se o horário já foi confirmado por outro agendamento
+    const { data_agendada, hora_agendada, barbeiro_id } = agendamento[0];
+
     const [conflito] = await pool.query(
       `SELECT id 
        FROM agendamentos 
        WHERE data_agendada = ? AND hora_agendada = ? AND barbeiro_id = ? AND confirmado = true`,
-      [agendamento.data_agendada, agendamento.hora_agendada, agendamento.barbeiro_id]
+      [data_agendada, hora_agendada, barbeiro_id]
     );
 
-    if (conflito) {
+    if (conflito.length > 0) {
       return res.status(400).json({ error: 'Este horário já foi confirmado por outro agendamento.' });
     }
 
-    // Confirma o agendamento
-    const result = await pool.query(
+    const [result] = await pool.query(
       `UPDATE agendamentos SET confirmado = true WHERE id = ?`,
       [id]
     );

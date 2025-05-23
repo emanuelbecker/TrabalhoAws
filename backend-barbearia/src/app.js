@@ -1,9 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 
+// Configura variáveis de ambiente
 dotenv.config();
 
+// Importação das rotas
 import testeRoute from './routes/teste.js';
 import clientesRoute from './routes/clientes.js';
 import barbeiroRoutes from './routes/barbeiroRoutes.js';
@@ -12,25 +15,21 @@ import servicosRoutes from './routes/servicosRoutes.js';
 
 const app = express();
 
-// ... suas outras configurações
-
-
-// ... rotas e start do servidor
-
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Rotas específicas primeiro
-app.use('/uploads', express.static('uploads')); // serve arquivos da pasta 'uploads'
+// Servir arquivos estáticos da pasta 'uploads'
+app.use('/uploads', express.static(path.resolve('uploads')));
+
+// Rotas da API
 app.use('/api/agendamentos', agendamentoRoutes);
 app.use('/api/barbeiros', barbeiroRoutes);
 app.use('/api/servicos', servicosRoutes);
 app.use('/api/clientes', clientesRoute);
-
-// Rota genérica /api - para testes ou outros endpoints
 app.use('/api', testeRoute);
 
-// Rota padrão de teste simples
+// Rota simples de teste
 app.get('/ping', (req, res) => {
   res.send('Servidor rodando 🎉');
 });
