@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { setHours, setMinutes } from 'date-fns';
-import { fetchServicos, fetchBarbeiros } from '../services/api.ts'; // ajuste o caminho conforme seu projeto
+import { fetchServicos, fetchBarbeiros } from '../services/api.ts';
 import axios from 'axios';
 
 // Tipos
@@ -16,7 +16,7 @@ export interface Servico {
   nome: string;
   descricao: string;
   preco: number;
-  duracao: number; // em minutos
+  duracao: number;
 }
 
 export interface Cliente {
@@ -68,8 +68,6 @@ const AgendamentoContext = createContext<AgendamentoContextType | undefined>(und
 // Função para gerar horários fixos do dia
 const gerarHorarios = (): Horario[] => {
   const horarios: Horario[] = [];
-
-  // Manhã: 8:30 até 11:50, de 50 em 50 minutos
   let hora = 8;
   let minuto = 30;
   while (hora < 12 || (hora === 11 && minuto <= 50)) {
@@ -128,7 +126,6 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
         const servicosAPI = await fetchServicos();
         setServicos(servicosAPI);
       } catch (error) {
-        console.error('Erro ao carregar serviços:', error);
         setServicos([]);
       }
 
@@ -136,122 +133,111 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
         const barbeirosAPI = await fetchBarbeiros();
         setBarbeiros(barbeirosAPI);
       } catch (error) {
-        console.error('Erro ao carregar barbeiros:', error);
         setBarbeiros([]);
       }
     }
     carregarDados();
   }, []);
 
-  // Buscar horários disponíveis sempre que a data ou barbeiro selecionados mudarem
-useEffect(() => {
-  const fetchHorarios = async () => {
-    if (!barbeiroSelecionado) {
-      console.log('Nenhum barbeiro selecionado, gerando horários padrão disponíveis');
-      setHorariosDisponiveis(gerarHorarios());
-      return;
-    }
+  // Buscar agendamentos e marcar horários ocupados sempre que data ou barbeiro mudarem
+  useEffect(() => {
+    const fetchHorarios = async () => {
+      if (!barbeiroSelecionado) {
+        setHorariosDisponiveis(gerarHorarios());
+        return;
+      }
 
-    try {
-      const dataFormatada = dataSelecionada.toISOString().split('T')[0];
-      console.log(`Buscando horários para data: ${dataFormatada} e barbeiroId: ${barbeiroSelecionado.id}`);
+      try {
+        const dataFormatada = dataSelecionada.toISOString().split('T')[0];
+        // Busca todos agendamentos
+        const response = await axios.get(`http://localhost:3001/api/agendamentos/`);
+        const agendamentosAPI = Array.isArray(response.data) ? response.data : [response.data];
 
-      const response = await axios.get(`http://localhost:3001/api/agendamentos/horarios`, {
-        params: {
-          data: dataFormatada,
-          barbeiroId: barbeiroSelecionado.id,
-        },
-      });
+        // Filtra agendamentos do barbeiro e da data
+        const agendamentosOcupados = agendamentosAPI.filter((a: any) =>
+          a.idBarbeiro?.toString() === barbeiroSelecionado.id.toString() &&
+          a.data &&
+          new Date(a.data).toISOString().split('T')[0] === dataFormatada &&
+          a.confirmado === 1
+        );
 
-      console.log('Resposta da API:', response.data);
-
-      if (Array.isArray(response.data)) {
+        // Marcar horário indisponível se tiver agendamento confirmado
         const horariosFormatados: Horario[] = gerarHorarios().map(h => {
-          const horarioBackend = response.data.find((r: any) => r.hora === h.hora);
+          // Procura se já existe um agendamento confirmado para o horário
+          const ocupado = agendamentosOcupados.find(
+            (ag: any) => ag.hora_agendada.slice(0, 5) === h.hora.slice(0, 5)
+          );
           return {
             ...h,
-            disponivel: horarioBackend ? horarioBackend.disponivel : true,
+            disponivel: ocupado === undefined ? true : false
           };
         });
 
         setHorariosDisponiveis(horariosFormatados);
-      } else {
-        console.warn('Resposta da API não é array, bloqueando todos horários');
+
+      } catch (error) {
         setHorariosDisponiveis(gerarHorarios().map(h => ({ ...h, disponivel: false })));
       }
-    } catch (error) {
-      console.error('Erro ao buscar horários disponíveis:', error);
-      setHorariosDisponiveis(gerarHorarios().map(h => ({ ...h, disponivel: false })));
-    }
+    };
+
+    fetchHorarios();
+  }, [dataSelecionada, barbeiroSelecionado]);
+
+  const obterHorariosDisponiveis = (data: Date, barbeiroId: string): Horario[] => {
+    return horariosDisponiveis;
   };
 
-  fetchHorarios();
-}, [dataSelecionada, barbeiroSelecionado]);
-// Funções para obter horários e barbeiros disponíveis
-
-
-const obterHorariosDisponiveis = (data: Date, barbeiroId: string): Horario[] => {
-  return horariosDisponiveis;
-};
-
-const obterBarbeirosDisponiveis = (data: Date): Barbeiro[] => {
-  return barbeiros;
-};
-
-const atualizarCliente = (cliente: Cliente) => setClienteAtual(cliente);
-
-const selecionarServico = (id: string) => {
-  const servico = servicos.find(s => s.id === id) || null;
-  setServicoSelecionado(servico);
-  setBarbeiroSelecionado(null);
-  setHorarioSelecionado(null);
-};
-
-const selecionarBarbeiro = (id: string) => {
-  const barbeiro = barbeiros.find(b => b.id === id) || null;
-  setBarbeiroSelecionado(barbeiro);
-  setHorarioSelecionado(null);
-};
-
-const selecionarData = (data: Date) => {
-  setDataSelecionada(data);
-  setBarbeiroSelecionado(null);
-  setHorarioSelecionado(null);
-};
-
-const selecionarHorario = (id: string) => {
-  if (!barbeiroSelecionado) return;
-
-  // Procura o horário pelo id e que esteja disponível
-  const horario = horariosDisponiveis.find(
-    h => h.id === id && h.disponivel === true
-  ) || null;
-
-  // Atualiza o estado com o horário encontrado ou null (se não disponível)
-  setHorarioSelecionado(horario);
-};
-// Função para confirmar o agendamento
-
-const confirmarAgendamento = () => {
-  if (!servicoSelecionado || !horarioSelecionado || !barbeiroSelecionado || !clienteAtual.nome) return;
-
-  const [hora, minuto] = horarioSelecionado.hora.split(':').map(Number);
-  const dataHora = setMinutes(setHours(dataSelecionada, hora), minuto);
-
-  const novoAgendamento: Agendamento = {
-    id: `${Date.now()}`,
-    cliente: clienteAtual,
-    data: dataHora,
-    horario: horarioSelecionado.hora,
-    servico: servicoSelecionado,
-    barbeiro: barbeiroSelecionado,
-    confirmado: true,
+  const obterBarbeirosDisponiveis = (data: Date): Barbeiro[] => {
+    return barbeiros;
   };
 
-  setAgendamentos(prev => [...prev, novoAgendamento]);
-  setAgendamentoConfirmado(novoAgendamento);
-};
+  const atualizarCliente = (cliente: Cliente) => setClienteAtual(cliente);
 
+  const selecionarServico = (id: string) => {
+    const servico = servicos.find(s => s.id === id) || null;
+    setServicoSelecionado(servico);
+    setBarbeiroSelecionado(null);
+    setHorarioSelecionado(null);
+  };
+
+  const selecionarBarbeiro = (id: string) => {
+    const barbeiro = barbeiros.find(b => b.id === id) || null;
+    setBarbeiroSelecionado(barbeiro);
+    setHorarioSelecionado(null);
+  };
+
+  const selecionarData = (data: Date) => {
+    setDataSelecionada(data);
+    setBarbeiroSelecionado(null);
+    setHorarioSelecionado(null);
+  };
+
+  const selecionarHorario = (id: string) => {
+    if (!barbeiroSelecionado) return;
+    const horario = horariosDisponiveis.find(
+      h => h.id === id && h.disponivel === true
+    ) || null;
+    setHorarioSelecionado(horario);
+  };
+
+  const confirmarAgendamento = () => {
+    if (!servicoSelecionado || !horarioSelecionado || !barbeiroSelecionado || !clienteAtual.nome) return;
+    const [hora, minuto] = horarioSelecionado.hora.split(':').map(Number);
+    const dataHora = setMinutes(setHours(dataSelecionada, hora), minuto);
+
+    const novoAgendamento: Agendamento = {
+      id: `${Date.now()}`,
+      cliente: clienteAtual,
+      data: dataHora,
+      horario: horarioSelecionado.hora,
+      servico: servicoSelecionado,
+      barbeiro: barbeiroSelecionado,
+      confirmado: true,
+    };
+
+    setAgendamentos(prev => [...prev, novoAgendamento]);
+    setAgendamentoConfirmado(novoAgendamento);
+  };
 
   return (
     <AgendamentoContext.Provider

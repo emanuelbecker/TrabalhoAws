@@ -2,6 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Barbeiro, Horario as HorarioType } from '../types/tipos';
 import { CalendarDays, User } from 'lucide-react';
 
+// Função utilitária para converter buffer para base64
+function bufferToBase64(buffer: any): string | undefined {
+  if (!buffer) return undefined;
+  if (typeof buffer === 'string') return buffer;
+  if (buffer.type === "Buffer" && Array.isArray(buffer.data)) {
+    const binary = new Uint8Array(buffer.data).reduce(
+      (acc, byte) => acc + String.fromCharCode(byte), ""
+    );
+    return `data:image/jpeg;base64,${btoa(binary)}`;
+  }
+  return undefined;
+}
+
 type AgendaDoBarbeiroProps = {
   barbeiro: Barbeiro;
 };
@@ -39,12 +52,8 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     return horarios;
   };
 
-  // Força a data no formato YYYY-MM-DD no timezone local (Brasil)
   function dataLocalISO(dataISO: string): string {
     const d = new Date(dataISO);
-    // Aqui você pode usar getFullYear() se backend e frontend estiverem no mesmo timezone
-    // Ou getUTCFullYear() se quiser comparar sempre UTC
-    // Para garantir o Brasil, use getFullYear/getMonth/getDate:
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
     const dia = String(d.getDate()).padStart(2, '0');
@@ -64,8 +73,6 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
         : agendamentosData ? [agendamentosData] : [];
 
       const agendamentosDoDia = agendamentos.filter((a: any) => {
-        // Ajuste: sempre compare dataLocalISO(a.data) === dataLocalISO(data)
-        // O data selecionada já vem no formato YYYY-MM-DD, mas pra garantir:
         return dataLocalISO(a.data) === dataLocalISO(data);
       });
 
@@ -166,8 +173,12 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex flex-col md:flex-row md:items-center mb-6 gap-4">
         <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0 border-4 border-amber-500">
-          {barbeiro.imagemUrl ? (
-            <img src={barbeiro.imagemUrl} alt={`Foto de ${barbeiro.nome}`} className="w-full h-full object-cover" />
+          {(barbeiro.imagemUrl || barbeiro.img) ? (
+            <img
+              src={barbeiro.imagemUrl || bufferToBase64(barbeiro.img)}
+              alt={`Foto de ${barbeiro.nome}`}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-slate-200">
               <User size={32} className="text-slate-400" />
