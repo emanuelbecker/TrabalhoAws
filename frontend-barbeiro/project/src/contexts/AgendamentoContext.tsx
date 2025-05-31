@@ -27,6 +27,10 @@ export const AgendamentoProvider: React.FC<{ children: React.ReactNode }> = ({ c
         cliente: item.cliente_nome || undefined,
         servico: item.servico_nome || undefined,
         aceito: item.confirmado === 1,
+        servico_id: item.servico_id ?? undefined,   // <-- inclui servico_id
+        // Adicione outros campos necessários do backend se for utilizar, ex:
+        // preco: item.preco,
+        // descricao: item.descricao,
       }));
 
       setAgendamentos(formatados);
@@ -41,14 +45,25 @@ export const AgendamentoProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const confirmarAgendamento = (id: number) => {
     setAgendamentos((prev) =>
-      prev.map((ag) => (ag.id === id ? { ...ag, aceito: true } : ag))
+      prev.map((ag) =>
+        ag.id === id ? { ...ag, aceito: true } : ag
+      )
     );
   };
 
   const cancelarAgendamento = (id: number) => {
     setAgendamentos((prev) =>
       prev.map((ag) =>
-        ag.id === id ? { ...ag, ocupado: false, aceito: false, cliente: undefined, servico: undefined } : ag
+        ag.id === id
+          ? {
+              ...ag,
+              ocupado: false,
+              aceito: false,
+              cliente: undefined,
+              servico: undefined,
+              servico_id: undefined,
+            }
+          : ag
       )
     );
   };

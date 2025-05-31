@@ -17,4 +17,5 @@ export interface Horario {
   cliente?: string;
   servico?: string;
   aceito?: boolean;
+  servico_id?: number;        // ✅ Adicione esta linha
 }

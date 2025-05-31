@@ -11,8 +11,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     new Date().toISOString().split('T')[0]
   );
   const [horarios, setHorarios] = useState<HorarioType[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [diasDaSemana, setDiasDaSemana] = useState<{ data: string; nome: string }[]>([]);
 
   const gerarHorariosIntervalo = (): string[] => {
     const horarios: string[] = [];
@@ -40,8 +39,12 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     return horarios;
   };
 
+  // Força a data no formato YYYY-MM-DD no timezone local (Brasil)
   function dataLocalISO(dataISO: string): string {
     const d = new Date(dataISO);
+    // Aqui você pode usar getFullYear() se backend e frontend estiverem no mesmo timezone
+    // Ou getUTCFullYear() se quiser comparar sempre UTC
+    // Para garantir o Brasil, use getFullYear/getMonth/getDate:
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
     const dia = String(d.getDate()).padStart(2, '0');
@@ -50,9 +53,6 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
 
   const fetchHorarios = useCallback(async (barbeiroId: number, data: string) => {
     try {
-      setLoading(true);
-      setErro(null);
-
       const response = await fetch(
         `http://localhost:3001/api/agendamentos/?barbeiro=${barbeiroId}&data=${encodeURIComponent(data)}`
       );
@@ -64,15 +64,16 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
         : agendamentosData ? [agendamentosData] : [];
 
       const agendamentosDoDia = agendamentos.filter((a: any) => {
-        const dataAgendamentoLocal = dataLocalISO(a.data);
-        return dataAgendamentoLocal === data;
+        // Ajuste: sempre compare dataLocalISO(a.data) === dataLocalISO(data)
+        // O data selecionada já vem no formato YYYY-MM-DD, mas pra garantir:
+        return dataLocalISO(a.data) === dataLocalISO(data);
       });
 
       const horariosFixos = gerarHorariosIntervalo();
 
       const horariosDoDia: HorarioType[] = horariosFixos.map((horaStr, index) => {
         const agendamentoParaHora = agendamentosDoDia.find(
-          (a: any) => a.hora_agendada === horaStr
+          (a: any) => a.hora_agendada?.slice(0, 5) === horaStr.slice(0, 5)
         );
 
         return {
@@ -83,6 +84,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
           ocupado: !!agendamentoParaHora,
           cliente: agendamentoParaHora?.cliente_nome,
           servico: agendamentoParaHora?.servico_nome,
+          servico_id: agendamentoParaHora?.servico_id,
           aceito: agendamentoParaHora?.confirmado === 1,
           disponivel: !agendamentoParaHora,
         };
@@ -91,9 +93,6 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
       setHorarios(horariosDoDia);
     } catch (err: any) {
       console.error(err);
-      setErro(err.message);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -102,36 +101,56 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
   }, [barbeiro.id, dataSelecionada, fetchHorarios]);
 
   const handleAceitarPedido = async (horarioId: number) => {
+    const horario = horarios.find(h => h.id === horarioId);
+
+    if (!horario || !horario.servico_id) {
+      console.warn('Horário inválido ou sem servico_id:', horario);
+      return;
+    }
+
     try {
-      await fetch(`http://localhost:3001/api/agendamentos/${horarioId}`, {
-        method: 'PATCH',
+      const response = await fetch(`http://localhost:3001/api/agendamentos/${horarioId}/confirmar`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmado: 1 }),
+        body: JSON.stringify({
+          data_agendada: horario.data,
+          hora_agendada: horario.hora,
+          servico_id: horario.servico_id,
+        }),
       });
-      setHorarios((prev) =>
-        prev.map((h) => (h.id === horarioId ? { ...h, aceito: true } : h))
-      );
+
+      if (response.ok) {
+        setHorarios(prev =>
+          prev.map(h =>
+            h.id === horarioId ? { ...h, aceito: true, ocupado: true, disponivel: false } : h
+          )
+        );
+      } else {
+        const errData = await response.json();
+        console.error('Erro no update:', errData);
+      }
     } catch (err) {
-      console.error('Erro ao aceitar pedido:', err);
+      console.error('Erro ao confirmar agendamento:', err);
     }
   };
 
-  const [diasDaSemana, setDiasDaSemana] = useState<{ data: string; nome: string }[]>([]);
-
   const gerarDiasDaSemana = (): { data: string; nome: string }[] => {
-    const hoje = new Date();
     const dias = [];
     const nomesDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-    for (let i = 0; i < 7; i++) {
-      const data = new Date(hoje);
-      data.setHours(0, 0, 0, 0); // zera hora
-      data.setDate(hoje.getDate() + i);
+    for (let i = 1; i <= 7; i++) {
+      const data = new Date();
+      data.setDate(data.getDate() + i);
+
+      const diaFormatado = data.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+      const diaDaSemana = new Date(diaFormatado).getDay();
+
       dias.push({
-        data: data.toISOString().split('T')[0],
-        nome: i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : nomesDias[data.getDay()],
+        data: diaFormatado,
+        nome: i === 1 ? 'Hoje' : i === 2 ? 'Amanhã' : nomesDias[diaDaSemana],
       });
     }
+
     return dias;
   };
 
@@ -139,9 +158,9 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     setDiasDaSemana(gerarDiasDaSemana());
   }, []);
 
-  const horariosDisponiveis = horarios.filter((h) => h.disponivel && !h.ocupado);
-  const solicitacoes = horarios.filter((h) => h.ocupado && !h.aceito);
-  const agendadosConfirmados = horarios.filter((h) => h.ocupado && h.aceito);
+  const horariosDisponiveis = horarios.filter(h => h.disponivel && !h.ocupado);
+  const solicitacoes = horarios.filter(h => h.ocupado && !h.aceito);
+  const agendadosConfirmados = horarios.filter(h => h.ocupado && h.aceito);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">

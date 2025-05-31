@@ -2,26 +2,29 @@ import pool from '../database/db.js';
 
 export const getAll = async (req, res) => {
   try {
-    const [agendamentos] = await pool.query(`
+    const agendamentos = await pool.query(`
       SELECT 
-          a.id, a.data_agendada AS data, a.hora_agendada, a.confirmado,
-          a.barbeiro_id AS idBarbeiro,
-          c.nome AS cliente_nome, c.telefone, c.email,
-          s.nome AS servico_nome, s.descricao, s.preco,
-          b.nome AS barbeiro_nome, b.img AS barbeiro_img
+        a.id, a.data_agendada AS data, a.hora_agendada, a.confirmado,
+        a.barbeiro_id AS idBarbeiro,
+        c.nome AS cliente_nome, c.telefone, c.email,
+        s.nome AS servico_nome, s.descricao, s.preco, s.id as servico_id,
+        b.nome AS barbeiro_nome, b.img AS barbeiro_img
       FROM agendamentos a
-          JOIN clientes c ON a.cliente_id = c.id
-          JOIN servicos s ON a.servico_id = s.id
-          JOIN barbeiros b ON a.barbeiro_id = b.id
+        JOIN clientes c ON a.cliente_id = c.id
+        JOIN servicos s ON a.servico_id = s.id
+        JOIN barbeiros b ON a.barbeiro_id = b.id
       ORDER BY a.data_agendada, a.hora_agendada;
     `);
 
-    res.json(agendamentos);
+    console.log('[DEBUG] agendamentos:', agendamentos); // <--- Adicione este log
+
+    res.json(agendamentos); // <-- sempre envie o array
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erro ao buscar agendamentos.' });
   }
 };
+
 
 export const create = async (req, res) => {
   const { cliente_id, servico_id, barbeiro_id, data, horario, confirmado = false } = req.body;
@@ -124,36 +127,61 @@ export const getHorariosDisponiveis = async (req, res) => {
 };
 
 export const confirmarAgendamento = async (req, res) => {
+  console.log('[DEBUG] ConfirmarAgendamento params:', req.params, 'body:', req.body);
+
   const { id } = req.params;
   try {
-    const [agendamento] = await pool.query(
+    // 1. Seleciona o agendamento
+    const agendamentoQueryRes = await pool.query(
       `SELECT data_agendada, hora_agendada, barbeiro_id 
        FROM agendamentos 
        WHERE id = ? AND confirmado = false`,
       [id]
     );
+    let rows = agendamentoQueryRes;
+    if (Array.isArray(agendamentoQueryRes) && Array.isArray(agendamentoQueryRes[0])) {
+      rows = agendamentoQueryRes[0];
+    }
+    console.log('[DEBUG] agendamentoQueryRes:', rows);
 
-    if (!agendamento || agendamento.length === 0) {
+    if (!rows || rows.length === 0 || !rows[0]) {
       return res.status(404).json({ error: 'Agendamento não encontrado ou já confirmado.' });
     }
 
-    const { data_agendada, hora_agendada, barbeiro_id } = agendamento[0];
+    const { data_agendada, hora_agendada, barbeiro_id } = rows[0];
 
-    const [conflito] = await pool.query(
+    // 2. Checa conflito
+    const conflitoQueryRes = await pool.query(
       `SELECT id 
        FROM agendamentos 
        WHERE data_agendada = ? AND hora_agendada = ? AND barbeiro_id = ? AND confirmado = true`,
       [data_agendada, hora_agendada, barbeiro_id]
     );
+    let conflitoRows = conflitoQueryRes;
+    if (Array.isArray(conflitoQueryRes) && Array.isArray(conflitoQueryRes[0])) {
+      conflitoRows = conflitoQueryRes[0];
+    }
+    console.log('[DEBUG] conflitoQueryRes:', conflitoRows);
 
-    if (conflito.length > 0) {
+    if (conflitoRows.length > 0 && conflitoRows[0]) {
       return res.status(400).json({ error: 'Este horário já foi confirmado por outro agendamento.' });
     }
 
-    const [result] = await pool.query(
+    // 3. Faz o update
+    const resultQueryRes = await pool.query(
       `UPDATE agendamentos SET confirmado = true WHERE id = ?`,
       [id]
     );
+    console.log('[DEBUG] resultQueryRes:', resultQueryRes);
+
+    let result = resultQueryRes;
+    if (Array.isArray(resultQueryRes) && typeof resultQueryRes[0] === 'object' && resultQueryRes[0] !== null && 'affectedRows' in resultQueryRes[0]) {
+      result = resultQueryRes[0];
+    }
+
+    if (!result || result.affectedRows === undefined) {
+      return res.status(500).json({ error: 'Erro interno ao atualizar agendamento.' });
+    }
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Agendamento não encontrado.' });
