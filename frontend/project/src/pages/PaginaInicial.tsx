@@ -13,14 +13,14 @@ const PaginaInicial: React.FC = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center z-0 opacity-30"
           style={{ 
-            backgroundImage: "url('https://images.pexels.com/photos/897262/pexels-photo-897262.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')",
+            backgroundImage: "url('https://i.ibb.co/bRssGXsQ/photo.jpg')",
             backgroundPosition: "center 30%"
           }}
         ></div>
         
         <div className="container mx-auto px-4 z-10 text-center">
           <h1 className="text-4xl md:text-6xl text-white font-titulo font-bold mb-6 animate-aparecer">
-            Barbearia <span className="text-dourado">Corte & Estilo</span>
+            Barbearia <span className="text-dourado">Vargas</span>
           </h1>
           <p className="text-xl md:text-2xl text-white font-corpo mb-8 max-w-2xl mx-auto animate-aparecer" style={{animationDelay: '200ms'}}>
             Tradição e estilo no corte masculino desde 2010
@@ -39,7 +39,7 @@ const PaginaInicial: React.FC = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-titulo font-bold text-preto text-center mb-12">
-            Por que escolher a <span className="text-dourado">Corte & Estilo</span>
+            Por que escolher a <span className="text-dourado">Vargas Barbearia</span>
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -94,9 +94,6 @@ const PaginaInicial: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="font-titulo text-2xl text-preto">
                       R$ {(Number(servico.preco) || 0).toFixed(2).replace('.', ',')}
-                    </span>
-                    <span className="bg-dourado/20 text-preto px-3 py-1 rounded-full text-sm">
-                      {servico.duracao} minutos
                     </span>
                   </div>
                 </div>

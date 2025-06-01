@@ -22,12 +22,13 @@ const FormularioCliente: React.FC<FormularioClienteProps> = ({
       novosErros.nome = 'Nome é obrigatório';
     }
     
-    if (!cliente.telefone.trim()) {
-      novosErros.telefone = 'Telefone é obrigatório';
-    } else if (!/^\(\d{2}\) \d{5}-\d{4}$/.test(cliente.telefone)) {
-      novosErros.telefone = 'Formato inválido. Use (99) 99999-9999';
-    }
-    
+  else if (
+  !/^(\(\d{2}\)\s?)?\d{4,5}-?\d{3,4}$|^\d{8,9}$/.test(cliente.telefone.replace(/\s/g, ''))
+) {
+  novosErros.telefone = 'Formato inválido. Use (99) 99999-9999';
+}
+
+
     if (!cliente.email.trim()) {
       novosErros.email = 'E-mail é obrigatório';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cliente.email)) {

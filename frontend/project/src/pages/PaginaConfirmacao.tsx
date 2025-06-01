@@ -41,10 +41,19 @@ const PaginaConfirmacao: React.FC = () => {
                 <div className="bg-dourado/10 p-2 rounded-full mr-4">
                   <Calendar className="h-5 w-5 text-dourado" />
                 </div>
-                <div>
+                  <div>
                   <p className="font-corpo text-sm text-gray-500">Data</p>
                   <p className="font-corpo font-semibold text-preto">
-                    {format(agendamentoConfirmado.data, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {(() => {
+                      let dataObj: Date;
+                      try {
+                        dataObj = new Date(agendamentoConfirmado.data);
+                        if (isNaN(dataObj.getTime())) throw new Error('Data inválida');
+                        return format(dataObj, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
+                      } catch {
+                        return "Data inválida";
+                      }
+                    })()}
                   </p>
                 </div>
               </div>

@@ -21,6 +21,7 @@ const PaginaAgendamento: React.FC = () => {
     selecionarData,
     selecionarHorario,
     confirmarAgendamento,
+    setAgendamentoConfirmado,
     obterHorariosDisponiveis,
     obterBarbeirosDisponiveis
   } = useAgendamento();
@@ -38,10 +39,56 @@ const PaginaAgendamento: React.FC = () => {
     horarioSelecionado !== null;
   
   // Quando o usuário confirmar o agendamento
-  const handleConfirmarAgendamento = () => {
-    confirmarAgendamento();
-    navigate('/confirmacao');
+const handleConfirmarAgendamento = async () => {
+  const data = {
+    nome: clienteAtual?.nome,
+    telefone: clienteAtual?.telefone,
+    email: clienteAtual?.email,
+    servico_id: servicoSelecionado?.id,
+    barbeiro_id: barbeiroSelecionado?.id,
+    data_agendada: dataSelecionada.toISOString().slice(0, 10),
+    hora_agendada: horarioSelecionado
+      ? (() => {
+          const hora = horarioSelecionado.hora || horarioSelecionado;
+          if (typeof hora === 'string') {
+            return hora.length === 5 ? hora + ":00" : hora;
+          }
+          return '';
+        })()
+      : '',
+    confirmado: 0
   };
+
+  console.log("Dados enviados para o backend:", data);
+
+  try {
+    const response = await fetch('http://localhost:3001/api/agendamentos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      // Preenche o contexto com o agendamento confirmado:
+      setAgendamentoConfirmado({
+        id: result.id, // Se quiser manter o ID retornado pelo backend
+        data: data.data_agendada,
+        horario: data.hora_agendada,
+        barbeiro: { nome: barbeiroSelecionado?.nome ?? '' },
+        servico: { nome: servicoSelecionado?.nome ?? '', preco: servicoSelecionado?.preco ?? 0 },
+        cliente: { nome: clienteAtual?.nome ?? '', telefone: clienteAtual?.telefone ?? '', email: clienteAtual?.email ?? '' },
+        confirmado: true
+      });
+      navigate('/confirmacao');
+    } else {
+      alert(result.error || 'Erro ao criar agendamento.');
+    }
+  } catch (error) {
+    alert('Erro de conexão com o servidor.');
+  }
+};
   
   // Scroll para o próximo passo
   useEffect(() => {
@@ -144,5 +191,6 @@ const PaginaAgendamento: React.FC = () => {
     </div>
   );
 };
+
 
 export default PaginaAgendamento;

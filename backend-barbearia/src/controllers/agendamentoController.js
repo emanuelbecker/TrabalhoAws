@@ -1,4 +1,5 @@
 import pool from '../database/db.js';
+import { enviarMensagemWhatsApp } from '../utils/enviarWhatsapp.js';
 
 export const getAll = async (req, res) => {
   try {
@@ -16,41 +17,69 @@ export const getAll = async (req, res) => {
       ORDER BY a.data_agendada, a.hora_agendada;
     `);
 
-    console.log('[DEBUG] agendamentos:', agendamentos); // <--- Adicione este log
+    console.log('[DEBUG] agendamentos:', agendamentos);
 
-    res.json(agendamentos); // <-- sempre envie o array
+    res.json(agendamentos);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erro ao buscar agendamentos.' });
   }
 };
 
-
 export const create = async (req, res) => {
-  const { cliente_id, servico_id, barbeiro_id, data, horario, confirmado = false } = req.body;
+  console.log("BODY RECEBIDO:", req.body);
+
+  const {
+    nome,
+    telefone,
+    email,
+    servico_id,
+    barbeiro_id,
+    data_agendada,
+    hora_agendada,
+    confirmado = 0
+  } = req.body;
+
   try {
-    if (!cliente_id || !servico_id || !barbeiro_id || !data || !horario) {
-      return res.status(400).json({ error: 'Campos obrigatórios não fornecidos.' });
+    if (!nome || !telefone || !email) {
+      return res.status(400).json({ error: 'Nome, telefone e email do cliente são obrigatórios.' });
+    }
+    if (!servico_id || !barbeiro_id || !data_agendada || !hora_agendada) {
+      return res.status(400).json({ error: 'Campos do agendamento não fornecidos.' });
     }
 
-    const [conflito] = await pool.query(
+    const clienteResult = await pool.query(
+      `INSERT INTO clientes (nome, telefone, email) VALUES (?, ?, ?)`,
+      [nome, telefone, email]
+    );
+    const cliente_id = clienteResult.insertId;
+
+    const conflitoRows = await pool.query(
       `SELECT id 
        FROM agendamentos 
-       WHERE data_agendada = ? AND hora_agendada = ? AND barbeiro_id = ? AND confirmado = true`,
-      [data, horario, barbeiro_id]
+       WHERE data_agendada = ? AND hora_agendada = ? AND barbeiro_id = ?`,
+      [data_agendada, hora_agendada, barbeiro_id]
     );
-
-    if (conflito.length > 0) {
-      return res.status(400).json({ error: 'Este horário já está confirmado por outro agendamento.' });
+    if (conflitoRows.length > 0) {
+      return res.status(400).json({ error: 'Já existe um agendamento neste horário para este barbeiro.' });
     }
 
-    const [result] = await pool.query(
+    const result = await pool.query(
       `INSERT INTO agendamentos (cliente_id, servico_id, barbeiro_id, data_agendada, hora_agendada, confirmado)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [cliente_id, servico_id, barbeiro_id, data, horario, confirmado]
+      [cliente_id, servico_id, barbeiro_id, data_agendada, hora_agendada, confirmado]
     );
 
-    res.status(201).json({ id: result.insertId, cliente_id, servico_id, barbeiro_id, data, horario, confirmado });
+    res.status(201).json({
+      id: Number(result.insertId),
+      cliente_id: Number(cliente_id),
+      servico_id: Number(servico_id),
+      barbeiro_id: Number(barbeiro_id),
+      data_agendada,
+      hora_agendada,
+      confirmado
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erro ao criar agendamento.' });
@@ -187,9 +216,68 @@ export const confirmarAgendamento = async (req, res) => {
       return res.status(404).json({ error: 'Agendamento não encontrado.' });
     }
 
+    // NOVO BLOCO: Buscar dados completos para mensagem
+    const [dados] = await pool.query(`
+      SELECT 
+        c.telefone,
+        b.nome AS barbeiro_nome,
+        a.data_agendada,
+        a.hora_agendada,
+        s.nome AS servico_nome
+      FROM agendamentos a
+      JOIN clientes c ON a.cliente_id = c.id
+      JOIN barbeiros b ON a.barbeiro_id = b.id
+      JOIN servicos s ON a.servico_id = s.id
+      WHERE a.id = ?
+    `, [id]);
+
+    console.log('[DEBUG] Resultado da query dos dados completos:', dados);
+
+    function formatarData(dataAgendada) {
+      const dataObj = new Date(dataAgendada);
+      return dataObj.toLocaleDateString('pt-BR');
+    }
+
+    let dadosCliente = Array.isArray(dados) ? dados[0] : dados;
+
+    if (dadosCliente && dadosCliente.telefone) {
+      let numeroCliente = dadosCliente.telefone.replace(/\D/g, '');
+      if (!numeroCliente.startsWith('55')) numeroCliente = '55' + numeroCliente;
+
+      console.log('[DEBUG] Dados para WhatsApp:', {
+        numeroCliente,
+        barbeiro: dadosCliente.barbeiro_nome,
+        data: dadosCliente.data_agendada,
+        hora: dadosCliente.hora_agendada,
+        servico: dadosCliente.servico_nome
+      });
+
+      // === INTEGRAÇÃO COM MICRO SERVIÇO (NÃO MAIS O EXEC) ===
+      const mensagem = `Olá aqui é da Barbearia Corte & Estilo e estamos passando aqui para avisar que seu agendamento foi confirmado com o barbeiro: ${dadosCliente.barbeiro_nome}
+às ${dadosCliente.hora_agendada} no dia ${formatarData(dadosCliente.data_agendada)} que será realizado o serviço de: ${dadosCliente.servico_nome}`;
+
+      try {
+        const resposta = await fetch('http://localhost:3333/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ numero: numeroCliente, mensagem }),
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok) {
+          console.error('[Microserviço] Erro ao enviar mensagem:', resultado);
+        } else {
+          console.log('[Microserviço] Mensagem enviada com sucesso!');
+        }
+      } catch (error) {
+        console.error('[Microserviço] Falha ao conectar ao microserviço:', error);
+      }
+    } else {
+      console.warn('[DEBUG] Não encontrou dados completos do agendamento para enviar WhatsApp.');
+    }
+
     res.json({ message: 'Agendamento confirmado com sucesso.' });
   } catch (err) {
-    console.error(err);
+    console.error('Erro ao confirmar agendamento:', err);
     res.status(500).json({ error: 'Erro ao confirmar agendamento.' });
   }
 };

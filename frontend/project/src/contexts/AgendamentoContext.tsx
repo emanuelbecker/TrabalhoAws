@@ -33,13 +33,13 @@ export interface Barbeiro {
 }
 
 export interface Agendamento {
-  id: string;
+  id?: string;
   cliente: Cliente;
-  data: Date;
+  data: Date | string;
   horario: string;
-  servico: Servico;
-  barbeiro: Barbeiro;
-  confirmado: boolean;
+  servico: Partial<Servico> & { nome: string; preco: number };
+  barbeiro: Partial<Barbeiro> & { nome: string };
+  confirmado: boolean | number;
 }
 
 interface AgendamentoContextType {
@@ -61,6 +61,7 @@ interface AgendamentoContextType {
   confirmarAgendamento: () => void;
   obterHorariosDisponiveis: (data: Date, barbeiroId: string) => Horario[];
   obterBarbeirosDisponiveis: (data: Date) => Barbeiro[];
+  setAgendamentoConfirmado: (agendamento: Agendamento | null) => void; // <-- ADICIONADO!
 }
 
 const AgendamentoContext = createContext<AgendamentoContextType | undefined>(undefined);
@@ -68,6 +69,8 @@ const AgendamentoContext = createContext<AgendamentoContextType | undefined>(und
 // Função para gerar horários fixos do dia
 const gerarHorarios = (): Horario[] => {
   const horarios: Horario[] = [];
+
+  // Manhã (08:30 até 11:50)
   let hora = 8;
   let minuto = 30;
   while (hora < 12 || (hora === 11 && minuto <= 50)) {
@@ -88,10 +91,10 @@ const gerarHorarios = (): Horario[] => {
     if (hora > 11 && minuto > 50) break;
   }
 
-  // Tarde: 13:30 até 19:00, de 50 em 50 minutos
-  hora = 13;
-  minuto = 30;
-  while (hora < 19) {
+  // Tarde: começa em 14:00, vai até 19:00, pulando de 50 em 50 minutos
+  hora = 14;
+  minuto = 0;
+  while (hora < 19 || (hora === 19 && minuto <= 0)) {
     const horaFormatada = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
     horarios.push({
       id: `${hora}-${minuto}`, hora: horaFormatada, disponivel: true,
@@ -106,6 +109,7 @@ const gerarHorarios = (): Horario[] => {
 
   return horarios;
 };
+
 
 export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [clienteAtual, setClienteAtual] = useState<Cliente>({ nome: '', telefone: '', email: '' });
@@ -260,6 +264,7 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
         confirmarAgendamento,
         obterHorariosDisponiveis,
         obterBarbeirosDisponiveis,
+        setAgendamentoConfirmado, // <-- ADICIONADO AQUI!
       }}
     >
       {children}

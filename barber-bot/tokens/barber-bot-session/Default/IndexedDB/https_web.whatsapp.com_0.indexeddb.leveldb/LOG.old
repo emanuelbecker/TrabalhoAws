@@ -1,0 +1,25 @@
+2025/06/01-14:46:34.514 3c50 Reusing MANIFEST C:\Program1\TrabalhoAws\barber-bot\tokens\barber-bot-session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/06/01-14:46:34.515 3c50 Recovering log #340
+2025/06/01-14:46:34.539 3c50 Reusing old log C:\Program1\TrabalhoAws\barber-bot\tokens\barber-bot-session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000340.log 
+2025/06/01-14:46:35.553 4ec0 Level-0 table #351: started
+2025/06/01-14:46:35.564 4ec0 Level-0 table #351: 407796 bytes OK
+2025/06/01-14:46:35.565 4ec0 Delete type=0 #340
+2025/06/01-14:46:35.566 3c50 Manual compaction at level-0 from '\x001\x00\x00\x00' @ 72057594037927935 : 1 .. '\x002\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/06/01-14:46:36.677 3c50 Compacting 1@1 + 7@2 files
+2025/06/01-14:46:36.772 3c50 Generated table #352@1: 46924 keys, 2208953 bytes
+2025/06/01-14:46:36.862 3c50 Generated table #353@1: 48162 keys, 2206294 bytes
+2025/06/01-14:46:36.943 3c50 Generated table #354@1: 63666 keys, 2233421 bytes
+2025/06/01-14:46:37.015 3c50 Generated table #355@1: 30469 keys, 2191496 bytes
+2025/06/01-14:46:37.064 3c50 Generated table #356@1: 29726 keys, 2202767 bytes
+2025/06/01-14:46:37.134 3c50 Generated table #357@1: 53035 keys, 2198906 bytes
+2025/06/01-14:46:37.140 3c50 Generated table #358@1: 4064 keys, 111513 bytes
+2025/06/01-14:46:37.140 3c50 Compacted 1@1 + 7@2 files => 13353350 bytes
+2025/06/01-14:46:37.141 3c50 compacted to: files[ 0 0 7 0 0 0 0 ]
+2025/06/01-14:46:37.141 3c50 Delete type=2 #342
+2025/06/01-14:46:37.142 3c50 Delete type=2 #343
+2025/06/01-14:46:37.142 3c50 Delete type=2 #344
+2025/06/01-14:46:37.142 3c50 Delete type=2 #345
+2025/06/01-14:46:37.142 3c50 Delete type=2 #346
+2025/06/01-14:46:37.142 3c50 Delete type=2 #347
+2025/06/01-14:46:37.142 3c50 Delete type=2 #348
+2025/06/01-14:46:37.142 3c50 Delete type=2 #351

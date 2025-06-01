@@ -36,7 +36,7 @@ const Cabecalho: React.FC = () => {
         <Link to="/" className="flex items-center space-x-2">
           <Scissors className="h-8 w-8 text-dourado" />
           <div>
-            <h1 className="text-dourado font-titulo text-xl md:text-2xl font-bold">Barbearia Corte & Estilo</h1>
+            <h1 className="text-dourado font-titulo text-xl md:text-2xl font-bold">Vargas Barbearia</h1>
           </div>
         </Link>
 

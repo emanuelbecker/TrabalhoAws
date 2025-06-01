@@ -7,7 +7,7 @@ const Rodape: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-dourado font-titulo text-xl mb-4">Barbearia Corte & Estilo</h3>
+            <h3 className="text-dourado font-titulo text-xl mb-4">Vargas Barbearia</h3>
             <p className="font-corpo text-sm mb-4">
               Especializada em cortes masculinos tradicionais e modernos desde 2010.
               Nossa missão é oferecer um serviço de excelência com estilo e personalidade.
@@ -61,7 +61,7 @@ const Rodape: React.FC = () => {
         
         <div className="border-t border-gray-800 mt-8 pt-4 text-center">
           <p className="font-corpo text-xs text-gray-400">
-            &copy; {new Date().getFullYear()} Barbearia Corte & Estilo. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} Vargas Barbearia. Todos os direitos reservados.
           </p>
         </div>
       </div>
