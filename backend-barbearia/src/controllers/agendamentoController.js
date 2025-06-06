@@ -87,9 +87,9 @@ export const create = async (req, res) => {
 };
 
 export const getHorariosDisponiveis = async (req, res) => {
-  const { data, barbeiroId } = req.query;
+  const { data, barbeiro } = req.query;
 
-  if (!data || !barbeiroId) {
+  if (!data || !barbeiro) {
     return res.status(400).json({ error: 'Data e barbeiroId são obrigatórios.' });
   }
 
@@ -132,22 +132,25 @@ export const getHorariosDisponiveis = async (req, res) => {
 
     const todosHorarios = gerarHorarios();
 
-    const [agendados] = await pool.query(
+    const agendados = await pool.query(
       `SELECT hora_agendada 
        FROM agendamentos 
        WHERE data_agendada = ? AND barbeiro_id = ? AND confirmado = true`,
-      [data, barbeiroId]
+      [data, barbeiro]
     );
 
     const horariosOcupados = agendados.map(a => a.hora_agendada.substring(0, 5));
+    console.log('agendados',agendados);
+    
 
     const horarios = todosHorarios.map(({ hora, disponivel }) => ({
       data,
-      barbeiroId,
+      barbeiro,
       hora,
       disponivel: disponivel && !horariosOcupados.includes(hora),
     }));
-
+console.log('horarios',horarios);
+    
     res.json(horarios);
   } catch (err) {
     console.error('Erro ao buscar horários:', err);
@@ -164,7 +167,7 @@ export const confirmarAgendamento = async (req, res) => {
     const agendamentoQueryRes = await pool.query(
       `SELECT data_agendada, hora_agendada, barbeiro_id 
        FROM agendamentos 
-       WHERE id = ? AND confirmado = false`,
+       WHERE barbeiro_id = ? AND confirmado = false`,
       [id]
     );
     let rows = agendamentoQueryRes;

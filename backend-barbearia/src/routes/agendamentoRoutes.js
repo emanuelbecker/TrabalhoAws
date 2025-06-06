@@ -3,7 +3,7 @@ import {
   getAll, 
   create, 
   getHorariosDisponiveis, 
-  confirmarAgendamento 
+  confirmarAgendamento,
 } from '../controllers/agendamentoController.js';
 
 const router = express.Router();

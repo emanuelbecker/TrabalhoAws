@@ -62,8 +62,10 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
 
   const fetchHorarios = useCallback(async (barbeiroId: number, data: string) => {
     try {
+      
+      
       const response = await fetch(
-        `${import.meta.env.BASE_URL}/api/agendamentos/?barbeiro=${barbeiroId}&data=${encodeURIComponent(data)}`
+        `http://localhost:3001/api/agendamentos/horarios?barbeiro=${barbeiro.id}&data=${data}`
       );
       if (!response.ok) throw new Error('Erro ao buscar horários');
 
@@ -79,10 +81,13 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
       const horariosFixos = gerarHorariosIntervalo();
 
       const horariosDoDia: HorarioType[] = horariosFixos.map((horaStr, index) => {
+        
+        
         const agendamentoParaHora = agendamentosDoDia.find(
-          (a: any) => a.hora_agendada?.slice(0, 5) === horaStr.slice(0, 5)
+          (a: any) => a.hora?.slice(0, 5) === horaStr.slice(0, 5)
         );
 
+        console.log(agendamentoParaHora);
         return {
           id: agendamentoParaHora?.id || index + 1000,
           barbeiroId,
@@ -105,7 +110,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
 
   useEffect(() => {
     fetchHorarios(barbeiro.id, dataSelecionada);
-  }, [barbeiro.id, dataSelecionada, fetchHorarios]);
+  }, [barbeiro.id, dataSelecionada]);
 
   const handleAceitarPedido = async (horarioId: number) => {
     const horario = horarios.find(h => h.id === horarioId);
@@ -114,14 +119,15 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
       console.warn('Horário inválido ou sem servico_id:', horario);
       return;
     }
-
+    console.log("servicoID",horario.servico_id);
+    
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/agendamentos/${horarioId}/confirmar`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/agendamentos/${horarioId}/confirmar`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data_agendada: horario.data,
-          hora_agendada: horario.hora,
+          hora: horario.hora,
           servico_id: horario.servico_id,
         }),
       });
@@ -223,7 +229,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
           <div className="flex flex-wrap gap-3">
             {horariosDisponiveis.map((h) => (
               <div key={h.id} className="bg-gray-300 text-gray-700 rounded-md px-3 py-2 text-center min-w-[75px]">
-                {h.hora.slice(0, 5)}
+                {h.hora}
               </div>
             ))}
           </div>
@@ -239,7 +245,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
             {solicitacoes.map((h) => (
               <li key={h.id} className="flex justify-between items-center bg-yellow-50 p-3 rounded shadow-sm">
                 <div>
-                  <span className="font-semibold">{h.hora.slice(0, 5)}</span> - <span>{h.cliente}</span>
+                  <span className="font-semibold">{h.hora}</span> - <span>{h.cliente}</span>
                 </div>
                 <button
                   onClick={() => handleAceitarPedido(h.id)}
@@ -262,7 +268,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
             {agendadosConfirmados.map((h) => (
               <li key={h.id} className="flex justify-between items-center bg-green-50 p-3 rounded shadow-sm">
                 <div>
-                  <span className="font-semibold">{h.hora.slice(0, 5)}</span> - <span>{h.cliente}</span>
+                  <span className="font-semibold">{h.hora}</span> - <span>{h.cliente}</span>
                 </div>
                 <span className="text-green-700 font-semibold">Confirmado</span>
               </li>
