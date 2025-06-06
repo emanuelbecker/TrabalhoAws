@@ -2,7 +2,8 @@
 
 import type { Servico, Barbeiro, Cliente, Agendamento } from '../contexts/AgendamentoContext';
 
-const BASE_URL = `${import.meta.env.BASE_URL}`; // ajuste se precisar
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}`; // ajuste se precisar
+
 
 async function fetchAPI(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
   const config: RequestInit = {
@@ -26,6 +27,7 @@ async function fetchAPI(endpoint: string, method: string = 'GET', body: any = nu
 }
 
 export async function fetchBarbeiros(): Promise<Barbeiro[]> {
+  console.log("BARBEIROS BASE URL",BASE_URL);
   return fetchAPI('barbeiros');
 }
 

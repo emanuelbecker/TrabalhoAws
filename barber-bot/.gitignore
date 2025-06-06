@@ -1,4 +1,0 @@
-# Ignorar arquivos de sessão/cache do bot
-barber-bot/tokens/
-barber-bot/session/
-barber-bot/*.db
