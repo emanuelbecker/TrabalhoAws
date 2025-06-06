@@ -1,6 +1,7 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
-import type { Servico, Barbeiro, Cliente, Agendamento } from '../contexts/AgendamentoContext';
 import { Buffer } from 'buffer';
+import type { Servico, Barbeiro, Cliente, Agendamento } from '../contexts/AgendamentoContext';
+
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}`; // ajuste se precisar
 
 async function apiRequest(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
@@ -27,7 +28,6 @@ async function apiRequest(endpoint: string, method: string = 'GET', body: any = 
       data: axiosError.response?.data,
       message: axiosError.message,
     });
-    
     throw new Error((axiosError.response?.data as any)?.error || 'Erro na requisição');
   }
 }
@@ -35,9 +35,15 @@ async function apiRequest(endpoint: string, method: string = 'GET', body: any = 
 export async function fetchBarbeiros(): Promise<Barbeiro[]> {
   console.log("BARBEIROS BASE URL", BASE_URL);
   const barbeiros = await apiRequest('barbeiros');
+  
+  // Verificar se barbeiros é um array
+  if (!Array.isArray(barbeiros)) {
+    console.error("fetchBarbeiros: Resposta da API não é um array", barbeiros);
+    return []; // Retorna array vazio para evitar erros no front-end
+  }
+
   // Processar a imagem (Buffer) para uma URL base64
   return barbeiros.map((barbeiro: any) => ({
-    ...barbeiro,
     id: barbeiro.id.toString(),
     nome: barbeiro.nome,
     imagemUrl: barbeiro.img?.data

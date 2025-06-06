@@ -153,7 +153,7 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
 
       try {
         const dataFormatada = dataSelecionada.toISOString().split('T')[0];
-        console.log("url no agendamento context", import.meta.env.BASE_URL);
+        console.log("url no agendamento context", import.meta.env.VITE_API_BASE_URL);
         
         const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/agendamentos`);
         console.log("resposta agendamentos",response);
