@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   server: {
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/api': `http://18.221.67.44:3001/api`,
     },
   },
 });

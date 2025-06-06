@@ -30,7 +30,7 @@ const SeletorBarbeiro: React.FC<SeletorBarbeiroProps> = ({
           >
             <div className="w-24 h-24 rounded-full overflow-hidden mb-3">
               <img
-                src={`http://localhost:3001/api/barbeiros/${barbeiro.id}/imagem`}
+                src={`${import.meta.env.BASE_URL}/barbeiros/${barbeiro.id}/imagem`}
                 alt={`Barbeiro ${barbeiro.nome}`}
                 className="w-full h-full object-cover"
               />

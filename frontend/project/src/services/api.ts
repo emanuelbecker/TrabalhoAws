@@ -2,7 +2,7 @@
 
 import type { Servico, Barbeiro, Cliente, Agendamento } from '../contexts/AgendamentoContext';
 
-const BASE_URL = 'http://localhost:3001/api'; // ajuste se precisar
+const BASE_URL = `${import.meta.env.BASE_URL}`; // ajuste se precisar
 
 async function fetchAPI(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
   const config: RequestInit = {
@@ -16,6 +16,8 @@ async function fetchAPI(endpoint: string, method: string = 'GET', body: any = nu
   }
 
   const response = await fetch(`${BASE_URL}/${endpoint}`, config);
+  console.log(response);
+  
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || 'Erro na requisição');

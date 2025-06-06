@@ -154,7 +154,7 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
       try {
         const dataFormatada = dataSelecionada.toISOString().split('T')[0];
         // Busca todos agendamentos
-        const response = await axios.get(`http://localhost:3001/api/agendamentos/`);
+        const response = await axios.get(`${import.meta.env.BASE_URL}/agendamentos/`);
         const agendamentosAPI = Array.isArray(response.data) ? response.data : [response.data];
 
         // Filtra agendamentos do barbeiro e da data

@@ -63,7 +63,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
   const fetchHorarios = useCallback(async (barbeiroId: number, data: string) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/agendamentos/?barbeiro=${barbeiroId}&data=${encodeURIComponent(data)}`
+        `${import.meta.env.BASE_URL}/api/agendamentos/?barbeiro=${barbeiroId}&data=${encodeURIComponent(data)}`
       );
       if (!response.ok) throw new Error('Erro ao buscar horários');
 
@@ -116,7 +116,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/agendamentos/${horarioId}/confirmar`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}/api/agendamentos/${horarioId}/confirmar`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

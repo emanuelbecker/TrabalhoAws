@@ -62,7 +62,7 @@ const handleConfirmarAgendamento = async () => {
   console.log("Dados enviados para o backend:", data);
 
   try {
-    const response = await fetch('http://localhost:3001/api/agendamentos', {
+    const response = await fetch(`${import.meta.env.BASE_URL}/agendamentos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
