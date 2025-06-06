@@ -33,7 +33,7 @@ async function apiRequest(endpoint: string, method: string = 'GET', body: any = 
 }
 
 export async function fetchBarbeiros(): Promise<Barbeiro[]> {
-  console.log("BARBEIROS BASE URL", BASE_URL);
+  console.log("BARBEIROS BASE URL", import.meta.env.VITE_API_BASE_URL);
   const barbeiros = await apiRequest('barbeiros');
   
   // Verificar se barbeiros é um array
