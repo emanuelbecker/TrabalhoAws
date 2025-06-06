@@ -116,7 +116,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.BASE_URL}/api/agendamentos/${horarioId}/confirmar`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/agendamentos/${horarioId}/confirmar`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
