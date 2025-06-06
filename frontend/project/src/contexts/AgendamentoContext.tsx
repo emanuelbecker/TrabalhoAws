@@ -153,8 +153,11 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
 
       try {
         const dataFormatada = dataSelecionada.toISOString().split('T')[0];
-        // Busca todos agendamentos
-        const response = await axios.get(`${import.meta.env.BASE_URL}/agendamentos/`);
+        console.log("url no agendamento context", import.meta.env.BASE_URL);
+        
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/agendamentos`);
+        console.log("resposta agendamentos",response);
+        
         const agendamentosAPI = Array.isArray(response.data) ? response.data : [response.data];
 
         // Filtra agendamentos do barbeiro e da data
@@ -180,6 +183,8 @@ export const AgendamentoProvider: React.FC<{ children: ReactNode }> = ({ childre
         setHorariosDisponiveis(horariosFormatados);
 
       } catch (error) {
+        console.log(error);
+        
         setHorariosDisponiveis(gerarHorarios().map(h => ({ ...h, disponivel: false })));
       }
     };

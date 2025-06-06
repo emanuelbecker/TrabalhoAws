@@ -1,42 +1,60 @@
-// src/services/api.ts
-
+import axios, { AxiosResponse, AxiosError } from 'axios';
 import type { Servico, Barbeiro, Cliente, Agendamento } from '../contexts/AgendamentoContext';
-
+import { Buffer } from 'buffer';
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}`; // ajuste se precisar
 
-
-async function fetchAPI(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
-  const config: RequestInit = {
+async function apiRequest(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
+  const config = {
     method,
+    url: `${BASE_URL}/${endpoint}`,
     headers: {
       'Content-Type': 'application/json',
     },
+    data: body ? body : undefined,
   };
-  if (body) {
-    config.body = JSON.stringify(body);
-  }
 
-  const response = await fetch(`${BASE_URL}/${endpoint}`, config);
-  console.log(response);
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Erro na requisição');
+  try {
+    const response: AxiosResponse = await axios(config);
+    console.log(`Response from ${method} ${endpoint}:`, {
+      status: response.status,
+      data: response.data,
+    });
+    return response.data;
+  } catch (error: any) {
+    const axiosError = error as AxiosError;
+    console.error(`Error in ${method} ${endpoint}:`, {
+      status: axiosError.response?.status,
+      data: axiosError.response?.data,
+      message: axiosError.message,
+    });
+    
+    throw new Error((axiosError.response?.data as any)?.error || 'Erro na requisição');
   }
-  return response.json();
 }
 
 export async function fetchBarbeiros(): Promise<Barbeiro[]> {
-  console.log("BARBEIROS BASE URL",BASE_URL);
-  return fetchAPI('barbeiros');
+  console.log("BARBEIROS BASE URL", BASE_URL);
+  const barbeiros = await apiRequest('barbeiros');
+  // Processar a imagem (Buffer) para uma URL base64
+  return barbeiros.map((barbeiro: any) => ({
+    ...barbeiro,
+    id: barbeiro.id.toString(),
+    nome: barbeiro.nome,
+    imagemUrl: barbeiro.img?.data
+      ? `data:image/jpeg;base64,${Buffer.from(barbeiro.img.data).toString('base64')}`
+      : undefined,
+    foto: barbeiro.img?.data
+      ? `data:image/jpeg;base64,${Buffer.from(barbeiro.img.data).toString('base64')}`
+      : undefined,
+  }));
 }
 
 export async function fetchServicos(): Promise<Servico[]> {
-  return fetchAPI('servicos');
+  return apiRequest('servicos');
 }
 
 export async function fetchAgendamentos(): Promise<Agendamento[]> {
-  return fetchAPI('agendamentos');
+  return apiRequest('agendamentos');
 }
 
 export async function criarAgendamento(dadosAgendamento: {
@@ -47,11 +65,11 @@ export async function criarAgendamento(dadosAgendamento: {
   horario: string;
   confirmado: boolean;
 }): Promise<Agendamento> {
-  return fetchAPI('agendamentos', 'POST', dadosAgendamento);
+  return apiRequest('agendamentos', 'POST', dadosAgendamento);
 }
 
 export async function fetchClientes(): Promise<Cliente[]> {
-  return fetchAPI('clientes');
+  return apiRequest('clientes');
 }
 
 export async function criarCliente(dadosCliente: {
@@ -59,5 +77,5 @@ export async function criarCliente(dadosCliente: {
   telefone: string;
   email: string;
 }): Promise<Cliente> {
-  return fetchAPI('clientes', 'POST', dadosCliente);
+  return apiRequest('clientes', 'POST', dadosCliente);
 }
