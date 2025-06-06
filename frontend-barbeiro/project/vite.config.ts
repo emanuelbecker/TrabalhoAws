@@ -15,6 +15,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''), // Remove /api prefix
       },
+      '/api/agendamentos': {
+        target: 'http://18.221.67.44:3001',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Remove /api prefix
+      },
     }
   }
 });

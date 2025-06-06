@@ -10,7 +10,7 @@ function App() {
   useEffect(() => {
     async function fetchBarbeiros() {
       try {
-        const response = await fetch('/api/barbeiros');
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/barbeiros`);
         const data = await response.json();
         setBarbeiros(data);
       } catch (error) {
