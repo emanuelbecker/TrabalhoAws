@@ -176,9 +176,9 @@ export const confirmarAgendamento = async (req, res) => {
     }
     console.log('[DEBUG] agendamentoQueryRes:', rows);
 
-    if (!rows || rows.length === 0 || !rows[0]) {
-      return res.status(404).json({ error: 'Agendamento não encontrado ou já confirmado.' });
-    }
+   if (!rows || rows.length === 0 || !rows[0]) {
+     return res.status(404).json({ error: 'Agendamento não encontrado ou já confirmado.' });
+   }
 
     const { data_agendada, hora_agendada, barbeiro_id } = rows[0];
 
@@ -195,9 +195,9 @@ export const confirmarAgendamento = async (req, res) => {
     }
     console.log('[DEBUG] conflitoQueryRes:', conflitoRows);
 
-    if (conflitoRows.length > 0 && conflitoRows[0]) {
-      return res.status(400).json({ error: 'Este horário já foi confirmado por outro agendamento.' });
-    }
+   if (conflitoRows.length > 0 && conflitoRows[0]) {
+     return res.status(400).json({ error: 'Este horário já foi confirmado por outro agendamento.' });
+   }
 
     // 3. Faz o update
     const resultQueryRes = await pool.query(

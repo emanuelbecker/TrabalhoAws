@@ -53,6 +53,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
   };
 
   function dataLocalISO(dataISO: string): string {
+    // Normalizar a data para YYYY-MM-DD, ignorando timezone
     const d = new Date(dataISO);
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -60,34 +61,88 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     return `${ano}-${mes}-${dia}`;
   }
 
+  const fetchAgendamentos = async (barbeiroId: number) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/agendamentos`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch agendamentos');
+      }
+
+      const agendamentos = await response.json();
+      console.log('[DEBUG] Raw agendamentos from API:', agendamentos);
+
+      // Mapear os campos retornados pela API corretamente
+      const mappedAgendamentos = agendamentos.map((agendamento: any, index: number) => {
+        const barbeiroId = agendamento.idBarbeiro; // Ajustado para idBarbeiro
+        const data = agendamento.data; // Ajustado para data (aliased from data_agendada)
+        const horaStr = agendamento.hora_agendada; // Ajustado para hora_agendada
+
+        return {
+          id: agendamento.id || index + 1000,
+          barbeiroId,
+          data,
+          hora: horaStr,
+          ocupado: !!agendamento,
+          cliente: agendamento.cliente_nome,
+          servico: agendamento.servico_nome,
+          servico_id: agendamento.servico_id,
+          aceito: agendamento.confirmado === 1,
+          disponivel: !agendamento,
+        };
+      });
+
+      console.log('[DEBUG] Mapped agendamentos:', mappedAgendamentos);
+      return mappedAgendamentos;
+    } catch (error) {
+      console.error('Error fetching agendamentos:', error);
+      return [];
+    }
+  };
+
   const fetchHorarios = useCallback(async (barbeiroId: number, data: string) => {
     try {
-      
-      
-      const response = await fetch(
-        `http://localhost:3001/api/agendamentos/horarios?barbeiro=${barbeiro.id}&data=${data}`
-      );
-      if (!response.ok) throw new Error('Erro ao buscar horários');
+      console.log('[DEBUG] Fetching horarios for barbeiroId:', barbeiroId, 'and data:', data);
 
-      const agendamentosData = await response.json();
-      const agendamentos = Array.isArray(agendamentosData)
-        ? agendamentosData
-        : agendamentosData ? [agendamentosData] : [];
+      const agendamentos = await fetchAgendamentos(barbeiroId);
 
-      const agendamentosDoDia = agendamentos.filter((a: any) => {
-        return dataLocalISO(a.data) === dataLocalISO(data);
+      // Normalizar a data selecionada para comparação
+      const dataSelecionadaNormalizada = dataLocalISO(data);
+      console.log('[DEBUG] Data selecionada normalizada:', dataSelecionadaNormalizada);
+
+      // Filtrar agendamentos pelo dia selecionado e barbeiroId
+      const agendamentosDoDia = agendamentos.filter((a: HorarioType) => {
+        const dataAgendamentoNormalizada = dataLocalISO(a.data);
+        const isSameDay = dataAgendamentoNormalizada === dataSelecionadaNormalizada;
+        const isSameBarber = a.barbeiroId === barbeiroId;
+        console.log('[DEBUG] Comparing dates:', dataAgendamentoNormalizada, dataSelecionadaNormalizada, 'Result:', isSameDay, 'Barber match:', isSameBarber);
+        return isSameDay && isSameBarber;
       });
+
+      console.log('[DEBUG] Agendamentos do dia:', agendamentosDoDia);
 
       const horariosFixos = gerarHorariosIntervalo();
 
       const horariosDoDia: HorarioType[] = horariosFixos.map((horaStr, index) => {
-        
-        
-        const agendamentoParaHora = agendamentosDoDia.find(
-          (a: any) => a.hora?.slice(0, 5) === horaStr.slice(0, 5)
-        );
+        // Normalizar o formato da hora para HH:mm (remover os segundos)
+        const horaStrNormalizada = horaStr.slice(0, 5);
 
-        console.log(agendamentoParaHora);
+        const agendamentoParaHora = agendamentosDoDia.find((a: HorarioType) => {
+          // Normalizar a hora do agendamento para HH:mm
+          const horaAgendamento = a.hora?.slice(0, 5);
+          return horaAgendamento === horaStrNormalizada;
+        });
+
+        console.log('[DEBUG] Hora:', horaStrNormalizada, 'Agendamento para hora:', agendamentoParaHora);
+
         return {
           id: agendamentoParaHora?.id || index + 1000,
           barbeiroId,
@@ -102,34 +157,29 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
         };
       });
 
+      console.log('[DEBUG] Horarios do dia:', horariosDoDia);
       setHorarios(horariosDoDia);
     } catch (err: any) {
-      console.error(err);
+      console.error('Error fetching horarios:', err);
     }
   }, []);
 
   useEffect(() => {
     fetchHorarios(barbeiro.id, dataSelecionada);
-  }, [barbeiro.id, dataSelecionada]);
+  }, [barbeiro.id, dataSelecionada, fetchHorarios]);
 
   const handleAceitarPedido = async (horarioId: number) => {
     const horario = horarios.find(h => h.id === horarioId);
 
-    if (!horario || !horario.servico_id) {
-      console.warn('Horário inválido ou sem servico_id:', horario);
+    if (!horario) {
+      console.warn('Horário inválido:', horario);
       return;
     }
-    console.log("servicoID",horario.servico_id);
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/agendamentos/${horarioId}/confirmar`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data_agendada: horario.data,
-          hora: horario.hora,
-          servico_id: horario.servico_id,
-        }),
       });
 
       if (response.ok) {
@@ -138,9 +188,10 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
             h.id === horarioId ? { ...h, aceito: true, ocupado: true, disponivel: false } : h
           )
         );
+        console.log('Agendamento confirmado com sucesso:', horarioId);
       } else {
         const errData = await response.json();
-        console.error('Erro no update:', errData);
+        console.error('Erro ao confirmar agendamento:', errData);
       }
     } catch (err) {
       console.error('Erro ao confirmar agendamento:', err);
