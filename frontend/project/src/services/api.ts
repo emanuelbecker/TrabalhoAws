@@ -51,7 +51,7 @@ export async function fetchBarbeiros(): Promise<Barbeiro[]> {
       : undefined,
     foto: barbeiro.img?.data
       ? `data:image/jpeg;base64,${Buffer.from(barbeiro.img.data).toString('base64')}`
-      : undefined,
+      : "",
   }));
 }
 
