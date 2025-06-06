@@ -15,12 +15,19 @@ import servicosRoutes from './routes/servicosRoutes.js';
 
 const app = express();
 
+// Configuração explícita do CORS para permitir todas as origens (todos os IPs)
+app.use(cors({
+  origin: '*', // Permite todas as origens
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos permitidos
+  allowedHeaders: ['Content-Type', 'Authorization'], // Cabeçalhos permitidos
+  credentials: false // Desativa credenciais (não necessário para todas as origens)
+}));
+
 // Middlewares
-app.use(cors());
 app.use(express.json());
 
-// Servir arquivos estáticos da pasta 'uploads'
-app.use('/uploads', express.static(path.resolve('uploads')));
+// Servir arquivos estáticos da pasta 'Uploads'
+app.use('/uploads', express.static(path.resolve('Uploads')));
 
 // Rotas da API
 app.use('/api/agendamentos', agendamentoRoutes);
