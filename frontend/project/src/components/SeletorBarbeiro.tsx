@@ -1,6 +1,6 @@
 import React from 'react';
 import { Barbeiro } from '../contexts/AgendamentoContext';
-
+const pathImg ='https://i.ibb.co/pjycqL6y/image.png';
 interface SeletorBarbeiroProps {
   barbeiros: Barbeiro[];
   barbeiroSelecionado: Barbeiro | null;
@@ -30,7 +30,7 @@ const SeletorBarbeiro: React.FC<SeletorBarbeiroProps> = ({
           >
             <div className="w-24 h-24 rounded-full overflow-hidden mb-3">
               <img
-                src={`${import.meta.env.VITE_API_BASE_URL}/barbeiros/${barbeiro.id}/imagem`}
+                src={pathImg}
                 alt={`Barbeiro ${barbeiro.nome}`}
                 className="w-full h-full object-cover"
               />

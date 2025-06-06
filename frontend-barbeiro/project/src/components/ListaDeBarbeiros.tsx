@@ -1,6 +1,6 @@
 import React from 'react';
 import { Barbeiro } from '../types/tipos';
-
+const pathImg ='https://i.ibb.co/pjycqL6y/image.png';
 interface ListaDeBarbeirosProps {
   barbeiros: Barbeiro[];
   onSelecionarBarbeiro: (barbeiro: Barbeiro) => void;
@@ -35,7 +35,7 @@ function ListaDeBarbeiros({ barbeiros, onSelecionarBarbeiro }: ListaDeBarbeirosP
           >
             <div className="relative mb-4">
               <img
-                src={srcImagem}
+                src={pathImg}
                 alt={`Foto do barbeiro ${barbeiro.nome}`}
                 className="w-28 h-28 rounded-full object-cover border-4 border-blue-200 group-hover:border-blue-400 transition"
               />

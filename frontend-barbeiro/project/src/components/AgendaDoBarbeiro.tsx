@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Barbeiro, Horario as HorarioType } from '../types/tipos';
 import { CalendarDays, User } from 'lucide-react';
+const pathImg ='https://i.ibb.co/pjycqL6y/image.png';
 
 // Função utilitária para converter buffer para base64
 function bufferToBase64(buffer: any): string | undefined {
@@ -25,6 +26,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
   );
   const [horarios, setHorarios] = useState<HorarioType[]>([]);
   const [diasDaSemana, setDiasDaSemana] = useState<{ data: string; nome: string }[]>([]);
+  const [allAgendamentos, setAllAgendamentos] = useState<HorarioType[]>([]); // Cache all agendamentos
 
   const gerarHorariosIntervalo = (): string[] => {
     const horarios: string[] = [];
@@ -82,9 +84,9 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
 
       // Mapear os campos retornados pela API corretamente
       const mappedAgendamentos = agendamentos.map((agendamento: any, index: number) => {
-        const barbeiroId = agendamento.idBarbeiro; // Ajustado para idBarbeiro
-        const data = agendamento.data; // Ajustado para data (aliased from data_agendada)
-        const horaStr = agendamento.hora_agendada; // Ajustado para hora_agendada
+        const barbeiroId = agendamento.idBarbeiro;
+        const data = agendamento.data;
+        const horaStr = agendamento.hora_agendada;
 
         return {
           id: agendamento.id || index + 1000,
@@ -96,11 +98,12 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
           servico: agendamento.servico_nome,
           servico_id: agendamento.servico_id,
           aceito: agendamento.confirmado === 1,
-          disponivel: !agendamento,
+          disponivel: false, // Set to false for existing agendamentos
         };
       });
 
       console.log('[DEBUG] Mapped agendamentos:', mappedAgendamentos);
+      setAllAgendamentos(mappedAgendamentos); // Cache all agendamentos
       return mappedAgendamentos;
     } catch (error) {
       console.error('Error fetching agendamentos:', error);
@@ -112,7 +115,8 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     try {
       console.log('[DEBUG] Fetching horarios for barbeiroId:', barbeiroId, 'and data:', data);
 
-      const agendamentos = await fetchAgendamentos(barbeiroId);
+      // Use cached agendamentos if available, otherwise fetch
+      let agendamentos = allAgendamentos.length > 0 ? allAgendamentos : await fetchAgendamentos(barbeiroId);
 
       // Normalizar a data selecionada para comparação
       const dataSelecionadaNormalizada = dataLocalISO(data);
@@ -141,19 +145,20 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
           return horaAgendamento === horaStrNormalizada;
         });
 
-        console.log('[DEBUG] Hora:', horaStrNormalizada, 'Agendamento para hora:', agendamentoParaHora);
+        // Include all agendamentosDoDia, not just matched ones
+        const existingAgendamento = agendamentosDoDia.find(a => a.hora?.slice(0, 5) === horaStrNormalizada);
 
         return {
-          id: agendamentoParaHora?.id || index + 1000,
+          id: existingAgendamento?.id || index + 1000,
           barbeiroId,
           data,
           hora: horaStr,
-          ocupado: !!agendamentoParaHora,
-          cliente: agendamentoParaHora?.cliente_nome,
-          servico: agendamentoParaHora?.servico_nome,
-          servico_id: agendamentoParaHora?.servico_id,
-          aceito: agendamentoParaHora?.confirmado === 1,
-          disponivel: !agendamentoParaHora,
+          ocupado: !!existingAgendamento,
+          cliente: existingAgendamento?.cliente || '',
+          servico: existingAgendamento?.servico || '',
+          servico_id: existingAgendamento?.servico_id || null,
+          aceito: existingAgendamento?.aceito || false,
+          disponivel: !existingAgendamento,
         };
       });
 
@@ -162,7 +167,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
     } catch (err: any) {
       console.error('Error fetching horarios:', err);
     }
-  }, []);
+  }, [allAgendamentos]);
 
   useEffect(() => {
     fetchHorarios(barbeiro.id, dataSelecionada);
@@ -183,16 +188,15 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
       });
 
       if (response.ok) {
-        setHorarios(prev =>
-          prev.map(h =>
-            h.id === horarioId ? { ...h, aceito: true, ocupado: true, disponivel: false } : h
-          )
-        );
+        // Refresh horarios to reflect the updated confirmation
+        await fetchHorarios(barbeiro.id, dataSelecionada);
+        window.location.reload();
         console.log('Agendamento confirmado com sucesso:', horarioId);
       } else {
         const errData = await response.json();
         console.error('Erro ao confirmar agendamento:', errData);
       }
+      
     } catch (err) {
       console.error('Erro ao confirmar agendamento:', err);
     }
@@ -201,17 +205,18 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
   const gerarDiasDaSemana = (): { data: string; nome: string }[] => {
     const dias = [];
     const nomesDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const hoje = new Date();
 
-    for (let i = 1; i <= 7; i++) {
-      const data = new Date();
-      data.setDate(data.getDate() + i);
+    for (let i = 0; i < 7; i++) {
+      const data = new Date(hoje);
+      data.setDate(hoje.getDate() + i);
 
       const diaFormatado = data.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-      const diaDaSemana = new Date(diaFormatado).getDay();
+      const diaDaSemana = data.getDay();
 
       dias.push({
         data: diaFormatado,
-        nome: i === 1 ? 'Hoje' : i === 2 ? 'Amanhã' : nomesDias[diaDaSemana],
+        nome: i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : nomesDias[diaDaSemana],
       });
     }
 
@@ -232,7 +237,7 @@ const AgendaDoBarbeiro: React.FC<AgendaDoBarbeiroProps> = ({ barbeiro }) => {
         <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0 border-4 border-amber-500">
           {(barbeiro.imagemUrl || barbeiro.img) ? (
             <img
-              src={barbeiro.imagemUrl || bufferToBase64(barbeiro.img)}
+              src={pathImg}
               alt={`Foto de ${barbeiro.nome}`}
               className="w-full h-full object-cover"
             />
