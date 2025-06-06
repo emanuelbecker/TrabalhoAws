@@ -9,7 +9,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:3001'
+      '/api/barbeiros': {
+        target: 'http://18.221.67.44:3001',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Remove /api prefix
+      },
     }
   }
 });

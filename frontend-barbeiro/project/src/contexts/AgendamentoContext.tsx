@@ -15,7 +15,7 @@ export const AgendamentoProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const carregarAgendamentos = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/agendamentos/');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/agendamentos`);
       const data = await response.json();
 
       const formatados: Horario[] = data.map((item: any) => ({
