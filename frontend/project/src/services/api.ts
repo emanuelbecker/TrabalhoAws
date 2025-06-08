@@ -2,7 +2,7 @@
 
 import type { Servico, Barbeiro, Cliente, Agendamento } from '../contexts/AgendamentoContext';
 
-const BASE_URL = 'http://localhost:3001/api'; // ajuste se precisar
+const BASE_URL = 'http://localhost:3001/api'; // ajuste se precisar nao foi necessario
 
 async function fetchAPI(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
   const config: RequestInit = {

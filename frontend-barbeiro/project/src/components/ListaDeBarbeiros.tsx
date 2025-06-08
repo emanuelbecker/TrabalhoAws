@@ -5,7 +5,7 @@ interface ListaDeBarbeirosProps {
   barbeiros: Barbeiro[];
   onSelecionarBarbeiro: (barbeiro: Barbeiro) => void;
 }
-
+// Função para converter o buffer de imagem em Base64
 function bufferParaBase64(bufferData: number[]) {
   const binary = bufferData.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
   return btoa(binary);

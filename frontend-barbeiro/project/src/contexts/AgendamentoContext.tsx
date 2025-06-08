@@ -7,7 +7,8 @@ interface AgendamentoContextProps {
   confirmarAgendamento: (id: number) => void;
   cancelarAgendamento: (id: number) => void;
 }
-
+//atualizar tudo que for necessário para o contexto de agendamentos
+// e adicionar o servico_id como opcional, caso não seja necessário em todos os casos
 const AgendamentoContext = createContext<AgendamentoContextProps | undefined>(undefined);
 
 export const AgendamentoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
